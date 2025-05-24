@@ -1,0 +1,37 @@
+services:
+  # service名（任意で付けられる）
+  backend:
+    # ./backend/Dockerfileをビルドしてコンテナを起動させる．（注意点）docker-compose.ymlから見て，Dockerfileがあるディレクトリのパスを書く．
+    build: ./backend
+    # ホスト側のポート番号:コンテナ側のポート番号．やっていること：ホスト側で5001番のポート番号にアクセスしたら，コンテナの5001番のポート番号に接続されるようにしている．
+    ports:
+      - "50000:50000"
+    # ・backendコンテナ内の/appディレクトリ直下にホストマシンの./backendディレクトリを配置し，
+    # 　コンテナ内 or ホストマシンどちらでファイルを編集しても編集内容が即時反映されるようにしている．
+    # ・backendコンテナ内で使うデータベース領域を，ホストマシンの./databaseと同期できるようにしている．
+    volumes:
+      - ./backend:/app
+      - ./database:/app/database
+    # frontendコンテナを先に起動してからbackendコンテナを起動するようにしている．
+    depends_on:
+      - frontend
+
+  # service名（任意で付けられる）
+  frontend:
+    # ./frontend/Dockerfileをビルドしてコンテナを起動させる．（注意点）docker-compose.ymlから見て，Dockerfileがあるディレクトリのパスを書く．
+    build: ./frontend
+    # ホスト側のポート番号:コンテナ側のポート番号．やっていること：ホスト側で3000番のポート番号にアクセスしたら，コンテナの3000番のポート番号に接続されるようにしている．
+    ports:
+      - "3000:3000"
+    # frontendコンテナ内の/appディレクトリ直下にホストマシンの./frontendディレクトリを配置し，
+    # コンテナ内 or ホストマシンどちらでファイルを編集しても編集内容が即時反映されるようにしている．
+    volumes:
+      - ./frontend:/app
+
+  # service名（任意で付けられる）
+  # databaseコンテナは永続化用途で使う（/app/databaseをボリュームとして）
+  database:
+    image: busybox
+    volumes:
+      - ./database:/app/database
+    command: tail -f /dev/null
