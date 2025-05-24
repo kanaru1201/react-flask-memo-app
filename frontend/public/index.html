@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <!-- 文字コードをUTF-8にしている． -->
+    <meta charset="utf-8" />
+    <!-- %PUBLIC_URL%をビルド時に'/'に置き換えてくれる．' -->
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <!-- レスポンシブに対応できるようにしている -->
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <!-- Webメモアプリの説明 -->
+    <meta
+      name="description"
+      content="ReactとTailwind CSSで構築した自作のシンプルなWebメモアプリです。ログイン機能付きで、ユーザーごとに自分のメモだけを管理・表示できます。"
+    />
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <title>メモ帳</title>
+  </head>
+  <body>
+    <!-- Google ChromeやSafariなどのブラウザ側でJavaScriptが無効なときに表示されるerror message -->
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <!-- Reactのコンポーネントは全て<div id="root"></div>の中にJavaScriptで書かれる． -->
+    <div id="root"></div>
+  </body>
+</html>
