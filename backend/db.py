@@ -1,12 +1,12 @@
-import sqlite3
-from flask import g, current_app
+# Third Party Library
+import psycopg2
+from psycopg2.extras import RealDictCursor
 
-def connect_db():
-    db = sqlite3.connect(current_app.config['DATABASE'])
-    db.row_factory = sqlite3.Row
-    return db
+# Local application imports
+from config import Config
 
 def get_db():
-    if not hasattr(g, 'sqlite_db'):
-        g.sqlite_db = connect_db()
-    return g.sqlite_db
+    dsn = Config.DATABASE_URL
+
+    conn = psycopg2.connect(dsn, cursor_factory=RealDictCursor)
+    return conn

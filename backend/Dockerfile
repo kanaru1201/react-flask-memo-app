@@ -6,5 +6,4 @@ COPY . /app
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-# コンテナ起動時にpython app.pyで/appディレクトリのapp.pyを実行する．
 CMD ["python", "app.py"]

@@ -1,9 +1,10 @@
+# Third-party imports
 from flask import Blueprint, jsonify, request
-from flask_login import current_user, login_user, logout_user, login_required
-from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 
+# Local application imports
 from db import get_db
-from models.user import User
+from jwt_utils import generate_token, token_required
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -14,62 +15,88 @@ def signup():
     password = data.get('password')
 
     if not username or not password:
-        return jsonify({'error': 'username と password は必須です'}), 400 
+        return jsonify({'error': 'Username and password are required'}), 400
 
-    db = get_db()
-    existing = db.execute(
-        'SELECT 1 FROM users WHERE username = ?', (username,)
-    ).fetchone()
-    if existing:
-        return jsonify({'error': 'このユーザー名は既に使われています'}), 409 
+    conn = get_db()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                'SELECT 1 FROM users WHERE username = %s', (username,)
+            )
+            existing = cur.fetchone()
+            if existing:
+                return jsonify({'error': 'Username is already taken'}), 409
 
-    hashed = generate_password_hash(password, method='pbkdf2:sha256')
-    db.execute(
-        'INSERT INTO users (username, password) VALUES (?, ?)',
-        (username, hashed)
-    )
-    db.commit()
+            hashed = generate_password_hash(password, method='pbkdf2:sha256')
+            cur.execute(
+                'INSERT INTO users (username, password) VALUES (%s, %s)',
+                (username, hashed)
+            )
+            conn.commit()
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
 
-    return jsonify({'message': '登録成功'}), 201 
+    return jsonify({'message': 'User registered successfully'}), 201
 
 @auth_bp.route('/api/login', methods=['POST'])
 def login():
     data = request.get_json()
     username = data.get('username')
     password = data.get('password')
-    if not username or not password:  
-        return jsonify({'error': 'username と password は必須です'}), 400 
+    if not username or not password:
+        return jsonify({'error': 'Username and password are required'}), 400
 
-    db = get_db()
-    row = db.execute(
-        'SELECT userid, username, password FROM users WHERE username = ?',
-        (username,)
-    ).fetchone()
+    conn = get_db()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                'SELECT userid, username, password FROM users WHERE username = %s',
+                (username,)
+            )
+            row = cur.fetchone()
 
-    if row and check_password_hash(row['password'], password):
-        user = User(row['userid'], row['username'], row['password'])
-        # ↓login_user(user)の処理の流れ
-        # 1, login_user(user)を呼ぶと，Flask-Loginはuser.get_id()の戻り値をsession['_user_id']に保存する．
-        # 2, Flaskはセッション情報を署名付きのクッキーとしてブラウザに送信し，以降のリクエストではそのクッキーが自動的に送信される．
-        # 3, リクエストのたびにFlask-Loginはセッションから_user_idを取り出し，@login_manager.user_loaderで登録された関数を使ってユーザーを復元し，current_userにセットする．
-        login_user(user) 
-        return jsonify({'message': 'ログイン成功'}), 200
+        if row and check_password_hash(row['password'], password):
+            token = generate_token(row['userid'])
+            return jsonify({
+                'message': 'Login successful',
+                'token': token,
+                'userid': row['userid'],
+                'username': row['username']
+            }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
 
-    return jsonify({'error': 'ログイン失敗'}), 401
+    return jsonify({'error': 'Invalid username or password'}), 401
 
 @auth_bp.route('/api/me', methods=['GET'])
-@login_required
+@token_required
 def get_current_user():
-    return jsonify({
-        'userid':  current_user.get_id(), 
-        'username': current_user.username 
-    }), 200
+    conn = get_db()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                'SELECT userid, username FROM users WHERE userid = %s',
+                (request.userid,)
+            )
+            row = cur.fetchone()
+
+        if row:
+            return jsonify({
+                'userid': row['userid'],
+                'username': row['username']
+            }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
+
+    return jsonify({'error': 'User not found'}), 404
 
 @auth_bp.route('/api/logout', methods=['POST'])
 def logout():
-    # ↓logout_user()の処理の流れ
-    # 1, logout_user()を呼ぶと，Flask-Loginはsession['_user_id']を削除してセッション上のログイン情報を消去する．
-    # 2, 次のリクエストでは_user_idが存在しないため，Flask-Loginはcurrent_userにAnonymousUserMixinをセットする．
-    # 3, その結果，current_user.is_authenticatedはFalseとなり，@login_requiredの判定により保護されたルートにはアクセスできなくなる．
-    logout_user() 
-    return jsonify({'message': 'ログアウトしました'}), 200
+    return jsonify({'message': 'Logged out successfully'}), 200

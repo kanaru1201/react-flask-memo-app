@@ -1,65 +1,99 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
+import { setToken } from './authUtils';
+import { API_BASE_URL } from './config';
 
+/**
+ * Component for user login.
+ * @param {Function} onSuccess - Callback executed after a successful login.
+ */
 function LoginForm({ onSuccess }) {
-  const [username, setUserid] = useState('');
+  // --- State ---
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
+  // --- Handlers ---
   const handleLogin = async (e) => {
     e.preventDefault();
+    setError('');
+    setLoading(true);
+
     try {
-      await axios.post('http://127.0.0.1:50000/api/login',
-        { username, password },
-        { withCredentials: true }
-      );
-      console.log('ログイン成功');
+      const response = await axios.post(`${API_BASE_URL}/api/login`, {
+        username,
+        password
+      });
+
+      setToken(response.data.token);
+      console.log('Login successful');
       onSuccess();
     } catch (err) {
-      console.error(err);
-      setError('ログイン失敗！IDかパスワードが間違ってる');
+      console.error('Login error:', err);
+      setError('ログインに失敗しました。ユーザーIDかパスワードが違います。');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <form
+      className="max-w-md mx-auto mt-10 p-8 bg-white rounded-xl shadow-lg space-y-6"
       onSubmit={handleLogin}
-      className="max-w-md mx-auto mt-10 p-6 bg-white rounded-xl shadow-lg space-y-6"
     >
       <h2 className="text-2xl font-bold text-center text-gray-800">🔐 ログイン</h2>
 
-      {error && <p className="text-red-600 text-sm text-center">{error}</p>}
+      {/* Error Message */}
+      {error && (
+        <p className="text-red-600 text-sm text-center font-medium">
+          {error}
+        </p>
+      )}
 
+      {/* Username Input */}
       <div>
-        <label className="block text-sm font-semibold text-gray-700">ユーザーID</label>
+        <label className="block text-sm font-semibold text-gray-700 mb-1">
+          ユーザーID
+        </label>
         <input
           type="text"
+          className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
           value={username}
-          onChange={(e) => setUserid(e.target.value)}
-          className="w-full p-2 border border-gray-300 rounded-md"
+          onChange={(e) => setUsername(e.target.value)}
+          required
         />
       </div>
 
+      {/* Password Input */}
       <div>
-        <label className="block text-sm font-semibold text-gray-700">パスワード</label>
+        <label className="block text-sm font-semibold text-gray-700 mb-1">
+          パスワード
+        </label>
         <input
           type="password"
+          className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full p-2 border border-gray-300 rounded-md"
+          required
         />
       </div>
 
+      {/* Submit Button */}
       <button
         type="submit"
-        className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-md"
+        className={`w-full py-2 text-white font-semibold rounded-md transition-colors ${
+          loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+        }`}
+        disabled={loading}
       >
-        ログイン
+        {loading ? 'ログイン中...' : 'ログイン'}
       </button>
 
-      <p className="text-sm text-center">
-        アカウントがまだない？{' '}
+      {/* Register Link */}
+      <p className="text-sm text-center text-gray-600">
+        アカウントをお持ちでないですか？{' '}
         <Link to="/register" className="text-blue-600 hover:underline font-semibold">
           新規登録
         </Link>
