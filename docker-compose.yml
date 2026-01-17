@@ -1,14 +1,24 @@
 services:
-  backend:
-    build: ./backend
+  # Python Backend (Flask)
+  backend-python:
+    build: ./backend-python
     ports:
       - "8080:5000"
-    volumes:
-      - ./backend:/app
     environment:
       - DATABASE_URL=postgresql://user:password@database:5432/react_flask_memo
+      - CORS_ORIGINS=http://localhost:3000
     depends_on:
-      - frontend
+      - database
+
+  # Go Backend (Echo)
+  backend-go:
+    build: ./backend-go
+    ports:
+      - "8081:8081"
+    environment:
+      - DATABASE_URL=postgres://user:password@database:5432/react_flask_memo?sslmode=disable
+      - CORS_ORIGINS=http://localhost:3000
+    depends_on:
       - database
 
   frontend:
@@ -21,6 +31,8 @@ services:
     environment:
       - WATCHPACK_POLLING=true
       - CHOKIDAR_USEPOLLING=true
+      # - REACT_APP_API_URL=http://localhost:8080
+      - REACT_APP_API_URL=http://localhost:8081
 
   database:
     image: postgres:15-alpine
@@ -31,6 +43,9 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ./postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
       - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
     command: postgres -c "timezone=Asia/Tokyo"
+
+volumes:
+  postgres_data:
