@@ -24,6 +24,14 @@ type MemoRequest struct {
 	Body  string `json:"body"`
 }
 
+type MemoResponse struct {
+	MemoID    int    `json:"memoid"`
+	OwnerID   int    `json:"owner_id"`
+	Title     string `json:"title"`
+	Body      string `json:"body"`
+	CreatedAt string `json:"created_at"`
+}
+
 func (h *MemoHandler) GetMemos(c echo.Context) error {
 	user := c.Get("user").(*jwt.Token)
 	claims := user.Claims.(*JWTCustomClaims)
@@ -33,7 +41,18 @@ func (h *MemoHandler) GetMemos(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 
-	return c.JSON(http.StatusOK, memos)
+	response := make([]MemoResponse, len(memos))
+	for i, m := range memos {
+		response[i] = MemoResponse{
+			MemoID:    m.ID,
+			OwnerID:   m.OwnerID,
+			Title:     m.Title,
+			Body:      m.Body,
+			CreatedAt: m.CreatedAt.Format("2006-01-02T15:04:05Z"),
+		}
+	}
+
+	return c.JSON(http.StatusOK, response)
 }
 
 func (h *MemoHandler) CreateMemo(c echo.Context) error {
