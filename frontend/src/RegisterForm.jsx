@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import { setToken } from './authUtils';
 import { API_BASE_URL } from './config';
 
 /**
  * Component for registering a new user.
+ * @param {Function} onSuccess - Callback executed after a successful registration.
  */
-function RegisterForm() {
+function RegisterForm({ onSuccess }) {
   // --- State ---
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -14,16 +16,12 @@ function RegisterForm() {
   
   // UI Status
   const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
-
-  const navigate = useNavigate();
 
   // --- Handlers ---
   const handleRegister = async (e) => {
     e.preventDefault();
     setError('');
-    setMessage('');
 
     // Validation
     if (!username || !password || !confirm) {
@@ -44,16 +42,9 @@ function RegisterForm() {
         password
       });
 
-      if (res.status === 201) {
-        setMessage('🎉 登録成功！ログイン画面に移動します...');
-        setUsername('');
-        setPassword('');
-        setConfirm('');
-
-        setTimeout(() => {
-          navigate('/login');
-        }, 1500);
-      }
+      setToken(res.data.token);
+      console.log('Registration successful');
+      onSuccess();
     } catch (err) {
       console.error('Registration error:', err);
       if (err.response && err.response.status === 409) {
@@ -61,6 +52,7 @@ function RegisterForm() {
       } else {
         setError('登録に失敗しました');
       }
+    } finally {
       setLoading(false);
     }
   };
@@ -72,9 +64,8 @@ function RegisterForm() {
     >
       <h2 className="text-2xl font-bold text-center text-gray-800">🆕 新規ユーザー登録</h2>
 
-      {/* Messages */}
+      {/* Error Message */}
       {error && <p className="text-red-600 text-sm font-medium text-center">{error}</p>}
-      {message && <p className="text-green-600 text-sm font-medium text-center">{message}</p>}
 
       {/* Username Input */}
       <div>

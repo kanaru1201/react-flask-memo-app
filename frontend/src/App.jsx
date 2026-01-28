@@ -116,7 +116,7 @@ function App() {
           
           <Route
             path="/register"
-            element={loggedIn ? <Navigate to="/memos" replace /> : <RegisterForm />}
+            element={loggedIn ? <Navigate to="/memos" replace /> : <RegisterForm onSuccess={handleLoginSuccess} />}
           />
           
           <Route
